@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PatientRest - Emergency Bed Management</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151f32',
+                            950: '#020617',
+                        },
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'slide-in-from-right': 'slideInRight 0.3s ease-out',
+                        'pulse-subtle': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideInRight: {
+                            '0%': { transform: 'translateX(100%)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Custom Styles */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.5);
+        }
+        
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.05);
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.4);
+        }
+        
+        /* Bed Icon Animation */
+        @keyframes bedPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .bed-pulse {
+            animation: bedPulse 2s ease-in-out infinite;
+        }
+        
+        /* Glass Effect */
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dark .glass-effect {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+    <div id="app"></div>
+
+    <script type="text/javascript">
+        // Hospital Data with Enhanced Information
+        const hospitalsData = {
+            'Memorial Medical Center': {
+                id: 1,
+                address: '123 Medical Drive, Downtown',
+                totalBeds: 150,
+                availableBeds: 88,
+                occupiedBeds: 62,
+                icuBeds: 20,
+                generalBeds: 130,
+                avgWaitTime: 25,
+                specialties: ['Trauma Center', 'ICU', 'Cardiac Surgery', 'Neurology'],
+                contact: '(+233) 122-2222',
+                distance: '2.3 km',
+                rating: 4.8,
+                emergencyRooms: 8,
+                beds: generateBeds(150, 88),
+                image: 'MMC.jpg'
+            },
+            'University Teaching Hospital': {
+                id: 2,
+                address: '456 Academic Institute',
+                totalBeds: 200,
+                availableBeds: 145,
+                occupiedBeds: 55,
+                icuBeds: 45,
+                generalBeds: 155,
+                avgWaitTime: 40,
+                specialties: ['Research', 'Specialized Care', 'Teaching Hospital', 'Pediatrics'],
+                contact: '(+233) 122-3333',
+                distance: '4.1 km',
+                rating: 4.9,
+                emergencyRooms: 12,
+                beds: generateBeds(200, 145),
+                image: 'UTH.webp'
+            },
+            'Community General Hospital': {
+                id: 3,
+                address: '789 Main Street',
+                totalBeds: 100,
+                availableBeds: 71,
+                occupiedBeds: 29,
+                icuBeds: 10,
+                generalBeds: 90,
+                avgWaitTime: 15,
+                specialties: ['Primary Care', 'Emergency', 'Pediatrics', 'Maternity'],
+                contact: '(+233) 122-4444',
+                distance: '1.5 km',
+                rating: 4.5,
+                emergencyRooms: 5,
+                beds: generateBeds(100, 71),
+                image: 'CGH.avif'
+            }
+        };
+
+        // Generate bed data
+        function generateBeds(totalBeds, availableCount) {
+            const beds = [];
+            const availableIndices = new Set();
+            
+            while (availableIndices.size < availableCount) {
+                availableIndices.add(Math.floor(Math.random() * totalBeds));
+            }
+            
+            for (let i = 1; i <= totalBeds; i++) {
+                const isAvailable = availableIndices.has(i - 1);
+                const bedType = i <= 10 ? 'ICU' : 'General';
+                const ward = bedType === 'ICU' ? 'ICU-W' : `Ward-${Math.ceil((i-10)/30)}`;
+                
+                beds.push({
+                    number: i,
+                    available: isAvailable,
+                    type: bedType,
+                    ward: ward,
+                    floor: bedType === 'ICU' ? '3rd' : Math.ceil((i-10)/30) <= 3 ? '2nd' : '1st'
+                });
+            }
+            
+            return beds;
+        }
+
+        // Status Badge Component
+        function StatusBadge({ status, count }) {
+            const statusConfig = {
+                available: { color: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30', icon: '✅' },
+                occupied: { color: 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30', icon: '⏳' },
+                critical: { color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30', icon: '⚠️' }
+            };
+            
+            const config = statusConfig[status] || statusConfig.available;
+            
+            return `
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${config.color}">
+                    ${config.icon} ${count} ${status.charAt(0).toUpperCase() + status.slice(1)}
+                </span>
+            `;
+        }
+
+        // Toast Notification Component
+        class Toast {
+            static show(message, type = 'info') {
+                const toast = document.createElement('div');
+                const colors = {
+                    success: 'bg-emerald-500',
+                    error: 'bg-rose-500',
+                    info: 'bg-primary-500',
+                    warning: 'bg-amber-500'
+                };
+                
+                toast.className = `fixed top-6 right-6 z-50 px-6 py-4 rounded-xl text-white shadow-2xl animate-in slide-in-from-right duration-300 ${colors[type]}`;
+                toast.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} text-xl"></i>
+                        <div>
+                            <p class="font-bold">${type === 'success' ? 'Success!' : type === 'error' ? 'Attention!' : 'Notification'}</p>
+                            <p class="text-sm opacity-90">${message}</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="ml-4 hover:bg-white/20 rounded-full p-1">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 5000);
+            }
+        }
+
+        // Main Application
+        class PatientRestApp {
+            constructor() {
+                this.state = {
+                    currentSection: 'patientForm',
+                    selectedHospital: null,
+                    selectedBed: null,
+                    patientData: {},
+                    darkMode: false,
+                    filters: {
+                        showAvailableOnly: false,
+                        minBeds: 0
+                    }
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.render();
+                this.setupEventListeners();
+                this.simulateRealTimeUpdates();
+            }
+            
+            render() {
+                const app = document.getElementById('app');
+                app.innerHTML = this.getAppHTML();
+                
+                // After rendering, attach event listeners
+                setTimeout(() => this.attachEventListeners(), 0);
+            }
+            
+            getAppHTML() {
+                return `
+                    <div class="min-h-screen transition-colors duration-500">
+                        ${this.getHeader()}
+                        <main class="max-w-7xl mx-auto px-4 py-8">
+                            ${this.getCurrentSection()}
+                        </main>
+                        ${this.getFooter()}
+                    </div>
+                `;
+            }
+            
+            getHeader() {
+                return `
+                    <header class="sticky top-0 z-40 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 glass-effect">
+                        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 shadow-lg shadow-primary-500/20">
+                                    <i class="fas fa-bed text-white text-xl"></i>
+                                </div>
+                                <div>
+                                    <h1 class="text-xl font-bold text-slate-900 dark:text-white">PatientRest Connect</h1>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Emergency Bed Management System</p>
+                                </div>
+                            </div>
+                            
+                            <nav class="hidden md:flex items-center gap-6">
+                                ${this.getNavLinks()}
+                            </nav>
+                            
+                            <div class="flex items-center gap-3">
+                                <button onclick="app.toggleDarkMode()" class="p-3 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors">
+                                    <i class="fas ${this.state.darkMode ? 'fa-sun' : 'fa-moon'}"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                `;
+            }
+            
+            getNavLinks() {
+                const links = [
+                    { id: 'patientForm', label: 'Patient Details', icon: 'fa-user-circle' },
+                    { id: 'hospitals', label: 'Find Hospital', icon: 'fa-hospital' },
+                    { id: 'bedAvailability', label: 'Bed Selection', icon: 'fa-bed', disabled: !this.state.selectedHospital }
+                ];
+                
+                return links.map(link => `
+                    <button onclick="app.showSection('${link.id}')" 
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${this.state.currentSection === link.id ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'} ${link.disabled ? 'opacity-50 cursor-not-allowed' : ''}"
+                            ${link.disabled ? 'disabled' : ''}>
+                        <i class="fas ${link.icon}"></i>
+                        ${link.label}
+                    </button>
+                `).join('');
+            }
+            
+            getCurrentSection() {
+                switch(this.state.currentSection) {
+                    case 'patientForm': return this.getPatientForm();
+                    case 'hospitals': return this.getHospitalsSection();
+                    case 'bedAvailability': return this.getBedAvailabilitySection();
+                    case 'success': return this.getSuccessSection();
+                    default: return this.getPatientForm();
+                }
+            }
+            
+            getPatientForm() {
+                return `
+                    <div class="animate-in fade-in duration-300">
+                        <div class="text-center mb-10">
+                            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">Emergency Bed Access</h2>
+                            <p class="text-lg text-slate-600 dark:text-slate-300">Quick registration for emergency bed search. All fields are required.</p>
+                        </div>
+                        
+                        <div class="max-w-2xl mx-auto">
+                            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 md:p-8 border border-slate-200 dark:border-slate-800">
+                                <form id="patientFormElement" class="space-y-6">
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+                                            <input type="text" id="fullName" required
+                                                   class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+                                                   placeholder="Enter patient's full name">
+                                        </div>
+                                        
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Contact Number</label>
+                                            <input type="tel" id="patientNumber" required
+                                                   class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+                                                   placeholder="Enter phone number">
+                                        </div>
+                                        
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Medical Condition</label>
+                                            <select id="medCondition" required
+                                                    class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all">
+                                                <option value="">Select primary condition</option>
+                                                <option value="Trauma/Accident">Trauma/Accident</option>
+                                                <option value="Respiratory Distress">Respiratory Distress</option>
+                                                <option value="Cardiac Emergency">Cardiac Emergency</option>
+                                                <option value="Fever/Infection">Fever/Infection</option>
+                                                <option value="Other Emergency">Other Emergency</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="space-y-2">
+                                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Emergency Contact</label>
+                                            <input type="tel" id="emegNumber" required
+                                                   class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all"
+                                                   placeholder="Alternative contact number">
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" 
+                                            class="w-full py-4 px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold rounded-xl shadow-lg shadow-primary-500/30 transition-all hover:scale-[1.02]">
+                                        <i class="fas fa-search mr-2"></i> Search Available Beds
+                                    </button>
+                                </form>
+                            </div>
+                            
+                            <div class="mt-8 grid md:grid-cols-3 gap-6">
+                                <div class="text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <i class="fas fa-bolt text-2xl text-amber-500 mb-3"></i>
+                                    <h3 class="font-bold text-slate-900 dark:text-white">Immediate Response</h3>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Real-time bed availability updates every minute</p>
+                                </div>
+                                
+                                <div class="text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <i class="fas fa-shield-alt text-2xl text-emerald-500 mb-3"></i>
+                                    <h3 class="font-bold text-slate-900 dark:text-white">HIPAA Compliant</h3>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Secure patient data handling</p>
+                                </div>
+                                
+                                <div class="text-center p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                                    <i class="fas fa-clock text-2xl text-primary-500 mb-3"></i>
+                                    <h3 class="font-bold text-slate-900 dark:text-white">24/7 Access</h3>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mt-2">Round-the-clock emergency services</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getHospitalsSection() {
+                const hospitals = Object.entries(hospitalsData);
+                
+                return `
+                    <div class="animate-in fade-in duration-300">
+                        <div class="mb-8">
+                            <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Available Hospitals</h2>
+                            <p class="text-slate-600 dark:text-slate-300">Select a hospital to view real-time bed availability and details</p>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            ${hospitals.map(([name, data]) => this.getHospitalCard(name, data)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getHospitalCard(name, data) {
+                const occupancyRate = Math.round((data.occupiedBeds / data.totalBeds) * 100);
+                const statusColor = occupancyRate > 80 ? 'bg-rose-500' : occupancyRate > 60 ? 'bg-amber-500' : 'bg-emerald-500';
+                
+                return `
+                    <div class="group bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-primary-400 dark:hover:border-primary-500 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl transform hover:-translate-y-1">
+                        <div class="h-48 overflow-hidden relative">
+                            <img src="${data.image}" alt="${name}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-6">
+                                <div class="text-white">
+                                    <h3 class="text-xl font-bold mb-1">${name}</h3>
+                                    <p class="text-sm opacity-90">${data.address.split(',')[0]}</p>
+                                </div>
+                            </div>
+                            <span class="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-xs font-bold">${data.distance}</span>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <i class="fas fa-star text-amber-500"></i>
+                                        <span class="font-bold text-slate-900 dark:text-white">${data.rating}</span>
+                                        <span class="text-sm text-slate-500">(${data.emergencyRooms} ERs)</span>
+                                    </div>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">${data.specialties.slice(0, 2).join(' • ')}</p>
+                                </div>
+                                ${StatusBadge({ status: 'available', count: data.availableBeds })}
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <span class="text-slate-600 dark:text-slate-400">Bed Capacity</span>
+                                        <span class="font-semibold text-slate-900 dark:text-white">${occupancyRate}% Full</span>
+                                    </div>
+                                    <div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full ${statusColor} transition-all duration-1000" style="width: ${occupancyRate}%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.icuBeds}</p>
+                                        <p class="text-xs text-slate-500">ICU Beds</p>
+                                    </div>
+                                    <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.generalBeds}</p>
+                                        <p class="text-xs text-slate-500">General</p>
+                                    </div>
+                                    <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                                        <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.avgWaitTime}</p>
+                                        <p class="text-xs text-slate-500">Avg Wait (min)</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button onclick="app.selectHospital('${name}')" 
+                                    class="w-full mt-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2">
+                                <i class="fas fa-bed"></i>
+                                View Available Beds
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getBedAvailabilitySection() {
+                if (!this.state.selectedHospital) {
+                    return `
+                        <div class="text-center py-12">
+                            <i class="fas fa-hospital text-4xl text-slate-300 mb-4"></i>
+                            <h2 class="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-2">No Hospital Selected</h2>
+                            <p class="text-slate-500 mb-6">Please select a hospital first</p>
+                            <button onclick="app.showSection('hospitals')" 
+                                    class="px-6 py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-colors">
+                                Browse Hospitals
+                            </button>
+                        </div>
+                    `;
+                }
+                
+                const hospital = hospitalsData[this.state.selectedHospital];
+                const filteredBeds = hospital.beds.filter(bed => 
+                    !this.state.filters.showAvailableOnly || bed.available
+                );
+                
+                return `
+                    <div class="animate-in fade-in duration-300">
+                        <div class="mb-8">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                                <div>
+                                    <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-1">${this.state.selectedHospital}</h2>
+                                    <p class="text-slate-600 dark:text-slate-400">${hospital.address}</p>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <button onclick="app.showSection('hospitals')" 
+                                            class="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                        <i class="fas fa-arrow-left mr-2"></i> Back
+                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                                            <input type="checkbox" ${this.state.filters.showAvailableOnly ? 'checked' : ''} 
+                                                   onchange="app.toggleFilter('showAvailableOnly')"
+                                                   class="rounded border-slate-300 dark:border-slate-700">
+                                            Available Only
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid md:grid-cols-4 gap-4 mb-8">
+                                ${this.getStatCard('Total Beds', hospital.totalBeds, 'fa-bed', 'text-primary-600')}
+                                ${this.getStatCard('Available', hospital.availableBeds, 'fa-check-circle', 'text-emerald-600')}
+                                ${this.getStatCard('Occupied', hospital.occupiedBeds, 'fa-user-injured', 'text-rose-600')}
+                                ${this.getStatCard('Avg Wait', `${hospital.avgWaitTime} min`, 'fa-clock', 'text-amber-600')}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">Select a Bed for Admission</h3>
+                            <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 mb-4">
+                                <div class="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
+                                    ${filteredBeds.slice(0, 30).map(bed => this.getBedIcon(bed)).join('')}
+                                </div>
+                                ${filteredBeds.length > 30 ? `
+                                    <div class="text-center mt-4">
+                                        <p class="text-sm text-slate-500">+ ${filteredBeds.length - 30} more beds available</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 bg-emerald-500 rounded"></div>
+                                        <span class="text-sm text-slate-600 dark:text-slate-400">Available</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 bg-rose-500 rounded"></div>
+                                        <span class="text-sm text-slate-600 dark:text-slate-400">Occupied</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-4 h-4 bg-primary-500 rounded ring-2 ring-primary-300"></div>
+                                        <span class="text-sm text-slate-600 dark:text-slate-400">Selected</span>
+                                    </div>
+                                </div>
+                                
+                                ${this.state.selectedBed ? `
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-slate-900 dark:text-white font-medium">Selected: Bed #${this.state.selectedBed}</span>
+                                        <button onclick="app.confirmAdmission()" 
+                                                class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors">
+                                            Confirm Admission
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <p class="text-sm text-slate-500">Click on an available bed to select</p>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getStatCard(label, value, icon, color) {
+                return `
+                    <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500 mb-1">${label}</p>
+                                <p class="text-2xl font-bold text-slate-900 dark:text-white">${value}</p>
+                            </div>
+                            <i class="fas ${icon} text-2xl ${color}"></i>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getBedIcon(bed) {
+                const isSelected = this.state.selectedBed === bed.number;
+                const statusClass = bed.available 
+                    ? (isSelected ? 'bg-primary-100 dark:bg-primary-900/30 border-primary-500 ring-2 ring-primary-300' : 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800')
+                    : 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 opacity-60 cursor-not-allowed';
+                
+                return `
+                    <div onclick="${bed.available ? `app.selectBed(${bed.number})` : ''}" 
+                         class="aspect-square flex flex-col items-center justify-center rounded-lg border ${statusClass} transition-all ${bed.available ? 'cursor-pointer hover:scale-105 hover:shadow-md' : ''}">
+                        <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">${bed.number}</div>
+                        <div class="text-xs text-slate-500">${bed.type}</div>
+                    </div>
+                `;
+            }
+            
+            getSuccessSection() {
+                return `
+                    <div class="max-w-2xl mx-auto animate-in fade-in duration-300">
+                        <div class="text-center mb-8">
+                            <div class="inline-flex items-center justify-center w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full mb-6">
+                                <i class="fas fa-check text-3xl text-emerald-600 dark:text-emerald-400"></i>
+                            </div>
+                            <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-2">Admission Confirmed!</h2>
+                            <p class="text-lg text-slate-600 dark:text-slate-300">Your emergency bed has been reserved</p>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden mb-8">
+                            <div class="p-6 border-b border-slate-200 dark:border-slate-800">
+                                <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">Admission Details</h3>
+                                <div class="space-y-4">
+                                    ${this.getDetailRow('Patient Name', this.state.patientData.fullName || 'N/A', 'fa-user')}
+                                    ${this.getDetailRow('Hospital', this.state.selectedHospital, 'fa-hospital')}
+                                    ${this.getDetailRow('Assigned Bed', `Bed #${this.state.selectedBed}`, 'fa-bed')}
+                                    ${this.getDetailRow('Contact', this.state.patientData.patientNumber || 'N/A', 'fa-phone')}
+                                    ${this.getDetailRow('Emergency Contact', this.state.patientData.emegNumber || 'N/A', 'fa-phone-alt')}
+                                    ${this.getDetailRow('Medical Condition', this.state.patientData.medCondition || 'N/A', 'fa-stethoscope')}
+                                </div>
+                            </div>
+                            
+                            <div class="p-6 bg-emerald-50 dark:bg-emerald-900/10">
+                                <div class="flex items-start gap-3">
+                                    <i class="fas fa-exclamation-triangle text-amber-500 mt-1"></i>
+                                    <div>
+                                        <h4 class="font-bold text-slate-900 dark:text-white mb-1">Immediate Action Required</h4>
+                                        <p class="text-slate-600 dark:text-slate-400">
+                                            Please proceed to the emergency department immediately. 
+                                            Your bed is reserved for the next 60 minutes. Estimated wait time: <strong>15-30 minutes</strong>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button onclick="app.showSection('hospitals')" 
+                                    class="flex-1 py-3 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <i class="fas fa-hospital mr-2"></i> Browse Other Hospitals
+                            </button>
+                            <button onclick="window.print()" 
+                                    class="flex-1 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold transition-colors">
+                                <i class="fas fa-print mr-2"></i> Print Details
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getDetailRow(label, value, icon) {
+                return `
+                    <div class="flex items-center gap-3">
+                        <i class="fas ${icon} text-slate-400 w-5"></i>
+                        <div class="flex-1">
+                            <span class="text-sm text-slate-500">${label}</span>
+                            <p class="font-medium text-slate-900 dark:text-white">${value}</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            getFooter() {
+                return `
+                    <footer class="mt-12 border-t border-slate-200 dark:border-slate-800 py-8">
+                        <div class="max-w-7xl mx-auto px-4">
+                            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                                <div class="text-center md:text-left">
+                                    <h3 class="font-bold text-slate-900 dark:text-white mb-2">PatientRest Connect</h3>
+                                    <p class="text-sm text-slate-600 dark:text-slate-400">Emergency Bed Management System</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                                        <i class="fas fa-shield-alt text-primary-500 mr-1"></i> HIPAA Compliant • Updated Every Minute
+                                    </p>
+                                    <p class="text-xs text-slate-500">For immediate medical emergency, call 911 or your local ambulance service</p>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                `;
+            }
+            
+            // Event Handlers
+            setupEventListeners() {
+                document.addEventListener('DOMContentLoaded', () => {
+                    const form = document.getElementById('patientFormElement');
+                    if (form) {
+                        form.addEventListener('submit', (e) => this.handleFormSubmit(e));
+                    }
+                });
+            }
+            
+            attachEventListeners() {
+                const form = document.getElementById('patientFormElement');
+                if (form) {
+                    form.onsubmit = (e) => this.handleFormSubmit(e);
+                }
+            }
+            
+            handleFormSubmit(e) {
+                e.preventDefault();
+                
+                this.state.patientData = {
+                    fullName: document.getElementById('fullName').value,
+                    patientNumber: document.getElementById('patientNumber').value,
+                    medCondition: document.getElementById('medCondition').value,
+                    emegNumber: document.getElementById('emegNumber').value
+                };
+                
+                // Validate
+                if (!this.state.patientData.fullName || !this.state.patientData.patientNumber) {
+                    Toast.show('Please fill in all required fields', 'error');
+                    return;
+                }
+                
+                Toast.show('Searching for available beds...', 'info');
+                this.showSection('hospitals');
+            }
+            
+            showSection(section) {
+                this.state.currentSection = section;
+                this.render();
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
+            selectHospital(hospitalName) {
+                this.state.selectedHospital = hospitalName;
+                this.state.selectedBed = null;
+                this.showSection('bedAvailability');
+                
+                Toast.show(`Viewing beds at ${hospitalName}`, 'info');
+            }
+            
+            selectBed(bedNumber) {
+                this.state.selectedBed = bedNumber;
+                this.render();
+                
+                Toast.show(`Bed #${bedNumber} selected`, 'success');
+            }
+            
+            confirmAdmission() {
+                if (!this.state.selectedBed) {
+                    Toast.show('Please select a bed first', 'error');
+                    return;
+                }
+                
+                this.state.currentSection = 'success';
+                this.render();
+                
+                Toast.show('Admission confirmed successfully!', 'success');
+            }
+            
+            toggleFilter(filterName) {
+                this.state.filters[filterName] = !this.state.filters[filterName];
+                this.render();
+            }
+            
+            toggleDarkMode() {
+                this.state.darkMode = !this.state.darkMode;
+                document.documentElement.classList.toggle('dark', this.state.darkMode);
+                this.render();
+            }
+            
+            simulateRealTimeUpdates() {
+                // Simulate real-time updates every 30 seconds
+                setInterval(() => {
+                    if (this.state.currentSection === 'hospitals' || this.state.currentSection === 'bedAvailability') {
+                        // Update some random bed counts
+                        Object.keys(hospitalsData).forEach(name => {
+                            const hospital = hospitalsData[name];
+                            const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
+                            if (change !== 0) {
+                                hospital.availableBeds = Math.max(0, Math.min(hospital.totalBeds, hospital.availableBeds + change));
+                                hospital.occupiedBeds = hospital.totalBeds - hospital.availableBeds;
+                                hospital.beds = generateBeds(hospital.totalBeds, hospital.availableBeds);
+                            }
+                        });
+                        
+                        if (this.state.currentSection === 'bedAvailability') {
+                            this.render();
+                        }
+                    }
+                }, 30000);
+            }
+        }
+
+        // Initialize the app
+        window.app = new PatientRestApp();
+    </script>
+</body>
+</html>
