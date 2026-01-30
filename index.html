@@ -115,7 +115,6 @@
                 occupiedBeds: 62,
                 icuBeds: 20,
                 generalBeds: 130,
-                avgWaitTime: 25,
                 specialties: ['Trauma Center', 'ICU', 'Cardiac Surgery', 'Neurology'],
                 contact: '(+233) 122-2222',
                 distance: '2.3 km',
@@ -132,7 +131,6 @@
                 occupiedBeds: 55,
                 icuBeds: 45,
                 generalBeds: 155,
-                avgWaitTime: 40,
                 specialties: ['Research', 'Specialized Care', 'Teaching Hospital', 'Pediatrics'],
                 contact: '(+233) 122-3333',
                 distance: '4.1 km',
@@ -149,7 +147,6 @@
                 occupiedBeds: 29,
                 icuBeds: 10,
                 generalBeds: 90,
-                avgWaitTime: 15,
                 specialties: ['Primary Care', 'Emergency', 'Pediatrics', 'Maternity'],
                 contact: '(+233) 122-4444',
                 distance: '1.5 km',
@@ -360,15 +357,8 @@
                                         
                                         <div class="space-y-2">
                                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Medical Condition</label>
-                                            <select id="medCondition" required
-                                                    class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all">
-                                                <option value="">Select primary condition</option>
-                                                <option value="Trauma/Accident">Trauma/Accident</option>
-                                                <option value="Respiratory Distress">Respiratory Distress</option>
-                                                <option value="Cardiac Emergency">Cardiac Emergency</option>
-                                                <option value="Fever/Infection">Fever/Infection</option>
-                                                <option value="Other Emergency">Other Emergency</option>
-                                            </select>
+                                            <textarea class="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all" name="patientCondition" id="medCondition" 
+                                            placeholder="Briefly describe the patient's medical condition and symptoms" required></textarea>
                                         </div>
                                         
                                         <div class="space-y-2">
@@ -468,7 +458,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="grid grid-cols-3 gap-2">
+                                <div class="grid grid-cols-2 gap-2">
                                     <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                         <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.icuBeds}</p>
                                         <p class="text-xs text-slate-500">ICU Beds</p>
@@ -476,10 +466,6 @@
                                     <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                                         <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.generalBeds}</p>
                                         <p class="text-xs text-slate-500">General</p>
-                                    </div>
-                                    <div class="text-center p-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                                        <p class="text-2xl font-bold text-slate-900 dark:text-white">${data.avgWaitTime}</p>
-                                        <p class="text-xs text-slate-500">Avg Wait (min)</p>
                                     </div>
                                 </div>
                             </div>
@@ -538,11 +524,10 @@
                                 </div>
                             </div>
                             
-                            <div class="grid md:grid-cols-4 gap-4 mb-8">
+                            <div class="grid md:grid-cols-3 gap-4 mb-8">
                                 ${this.getStatCard('Total Beds', hospital.totalBeds, 'fa-bed', 'text-primary-600')}
                                 ${this.getStatCard('Available', hospital.availableBeds, 'fa-check-circle', 'text-emerald-600')}
                                 ${this.getStatCard('Occupied', hospital.occupiedBeds, 'fa-user-injured', 'text-rose-600')}
-                                ${this.getStatCard('Avg Wait', `${hospital.avgWaitTime} min`, 'fa-clock', 'text-amber-600')}
                             </div>
                         </div>
                         
